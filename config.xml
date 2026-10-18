@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets" id="http://yourdomain/SmartSTBclone" version="1.0.0" viewmodes="maximized">
+    <name>SmartSTBclone</name>
+    <icon src="icon.png"/>
+    <content src="index.html"/>
+    <feature name="http://tizen.org/feature/screen.size.normal.1080.1920"/>
+    <feature name="http://tizen.org/feature/web.service"/>
+    <access origin="*" subdomains="true"/>
+    <tizen:application id="yourdomain.SmartSTBclone" package="yourdomain" required_version="4.0"/>
+    <tizen:profile name="tv-samsung"/>
+    <tizen:privilege name="http://tizen.org/privilege/internet"/>
+    <tizen:privilege name="http://tizen.org/privilege/application.launch"/>
+    <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>
+    <tizen:privilege name="http://tizen.org/privilege/tv.display"/>
+    <tizen:service id="yourdomain.StalkerProxy" auto-restart="true" on-boot="false">
+        <tizen:content src="service/proxy.js"/>
+        <tizen:name>StalkerProxy</tizen:name>
+        <tizen:icon src="icon.png"/>
+        <tizen:description>Local Header Proxy</tizen:description>
+    </tizen:service>
+    <tizen:setting background-support="disable"/>
+</widget>

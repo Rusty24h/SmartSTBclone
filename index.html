@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>SmartSTB Clone</title>
+  <script type="text/javascript" src="$WEBAPIS/webapis/webapis.js"></script>
+  <style>
+    :root {
+      --accent: #2563eb;
+      --accent-glow: rgba(37, 99, 235, 0.35);
+      --accent-light: #60a5fa;
+    }
+    body.theme-green {
+      --accent: #22c55e;
+      --accent-glow: rgba(34, 197, 94, 0.35);
+      --accent-light: #4ade80;
+    }
+    body.theme-red {
+      --accent: #ef4444;
+      --accent-glow: rgba(239, 68, 68, 0.35);
+      --accent-light: #f87171;
+    }
+    body.theme-amber {
+      --accent: #d97706;
+      --accent-glow: rgba(217, 119, 6, 0.35);
+      --accent-light: #fbbf24;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body { width: 1920px; height: 1080px; overflow: hidden; background: transparent; font-family: sans-serif; color: #fff; }
+    #av-player { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; z-index: 0; }
+    #ui-overlay { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; display: flex; flex-direction: column; background: rgba(10, 14, 23, 0.90); z-index: 10; transition: opacity 0.2s; }
+    #ui-overlay.hidden { opacity: 0; pointer-events: none; }
+    #top-bar { height: 64px; background: rgba(17, 24, 39, 0.96); border-bottom: 1px solid rgba(255, 255, 255, 0.1); display: flex; align-items: center; justify-content: space-between; padding: 0 40px; }
+    #app-brand { font-size: 26px; font-weight: bold; color: var(--accent-light); letter-spacing: 1px; }
+    #filter-badge { font-size: 22px; background: rgba(37, 99, 235, 0.25); border: 1px solid var(--accent); color: var(--accent-light); padding: 6px 18px; border-radius: 6px; display: none; }
+    #filter-badge.visible { display: inline-block; }
+    #clock-display { font-size: 24px; color: #d1d5db; font-weight: bold; }
+    #cols-wrap { flex: 1; display: flex; width: 100%; overflow: hidden; }
+    .col { height: 100%; padding: 24px 20px; border-right: 1px solid rgba(255, 255, 255, 0.1); overflow: hidden; display: flex; flex-direction: column; }
+    #modes-col { width: 260px; }
+    #cats-col { width: 440px; }
+    #items-col { flex: 1; }
+    #info-col { width: 460px; border-right: none; background: rgba(17, 24, 39, 0.5); padding: 28px 24px; }
+    .col-header { font-size: 20px; font-weight: bold; color: var(--accent-light); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; padding: 0 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .col-list { flex: 1; overflow: hidden; }
+    .col.focused { background: rgba(255, 255, 255, 0.04); }
+    .item { padding: 15px 20px; font-size: 25px; border-radius: 8px; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #9ca3af; }
+    .item.selected { background: #374151; color: #fff; }
+    .col.focused .item.selected, #search-results .item.selected { background: var(--accent); color: #fff; font-weight: bold; }
+    #preview-title { font-size: 28px; font-weight: bold; color: #fff; margin-bottom: 12px; line-height: 1.3; }
+    #preview-meta { font-size: 20px; color: var(--accent-light); margin-bottom: 16px; font-weight: bold; }
+    #preview-desc { font-size: 22px; color: #d1d5db; line-height: 1.45; max-height: 560px; overflow: hidden; }
+    #help-bar { height: 60px; background: rgba(17, 24, 39, 0.96); border-top: 1px solid rgba(255, 255, 255, 0.1); display: flex; align-items: center; justify-content: space-between; padding: 0 40px; font-size: 20px; color: #d1d5db; }
+    .key-hints { display: flex; gap: 24px; align-items: center; }
+    .dot { display: inline-block; width: 14px; height: 14px; border-radius: 50%; margin-right: 7px; vertical-align: middle; }
+    .dot.red { background: #ef4444; }
+    .dot.green { background: #22c55e; }
+    .dot.yellow { background: #eab308; }
+    .dot.blue { background: #3b82f6; }
+    #num-osd { position: absolute; top: 80px; right: 60px; background: rgba(17, 24, 39, 0.95); border: 2px solid var(--accent); border-radius: 12px; padding: 18px 36px; font-size: 48px; font-weight: bold; color: #fff; z-index: 25; display: none; }
+    #num-osd.visible { display: block; }
+    #osd-bar { position: absolute; bottom: 40px; left: 60px; right: 60px; background: rgba(17, 24, 39, 0.94); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 12px; padding: 26px 36px; z-index: 20; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
+    #osd-bar.visible { opacity: 1; }
+    #osd-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    #osd-title { font-size: 34px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 1350px; }
+    #osd-status { font-size: 22px; background: var(--accent); padding: 6px 16px; border-radius: 6px; }
+    .epg-row { font-size: 24px; color: #d1d5db; margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .epg-row span { color: var(--accent-light); font-weight: bold; margin-right: 10px; }
+    #vod-progress-wrap { width: 100%; height: 10px; background: #374151; border-radius: 5px; margin-top: 14px; overflow: hidden; display: none; }
+    #vod-progress-wrap.visible { display: block; }
+    #vod-progress-bar { width: 0%; height: 100%; background: var(--accent); transition: width 0.3s; }
+    .modal { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; background: rgba(0, 0, 0, 0.85); z-index: 30; display: none; align-items: center; justify-content: center; }
+    .modal.visible { display: flex; }
+    .modal-box { width: 920px; background: #1f2937; padding: 36px; border-radius: 12px; border: 1px solid #374151; }
+    .modal-box h2 { font-size: 34px; margin-bottom: 20px; }
+    .modal-box label { display: block; font-size: 22px; color: #9ca3af; margin-top: 14px; margin-bottom: 6px; }
+    .modal-box input, .modal-box select { width: 100%; font-size: 26px; padding: 14px; border-radius: 8px; border: 2px solid #4b5563; background: #111827; color: #fff; }
+    .modal-box input.focused, .modal-box select.focused { border-color: var(--accent); outline: none; }
+    .btn-row { display: flex; gap: 20px; margin-top: 28px; }
+    .btn { flex: 1; text-align: center; padding: 16px; font-size: 26px; border-radius: 8px; background: #374151; color: #fff; }
+    .btn.focused { background: var(--accent); font-weight: bold; }
+    #search-results { margin-top: 20px; height: 480px; overflow: hidden; }
+  </style>
+</head>
+<body>
+  <object id="av-player" type="application/avplayer"></object>
+
+  <div id="num-osd"></div>
+
+  <div id="ui-overlay">
+    <div id="top-bar">
+      <div id="app-brand">SMART STB</div>
+      <div id="filter-badge">Filter: None</div>
+      <div id="clock-display">--:--</div>
+    </div>
+    <div id="cols-wrap">
+      <div id="modes-col" class="col">
+        <div class="col-header">Menu</div>
+        <div id="modes-list" class="col-list"></div>
+      </div>
+      <div id="cats-col" class="col">
+        <div id="cats-header" class="col-header">Categories</div>
+        <div id="cats-list" class="col-list"></div>
+      </div>
+      <div id="items-col" class="col">
+        <div id="items-header" class="col-header">Channels</div>
+        <div id="items-list" class="col-list"></div>
+      </div>
+      <div id="info-col" class="col">
+        <div class="col-header">Details &amp; EPG</div>
+        <div id="preview-title">Select an item</div>
+        <div id="preview-meta"></div>
+        <div id="preview-desc">Use arrow keys to browse channels, movies, and series.</div>
+      </div>
+    </div>
+    <div id="help-bar">
+      <div class="key-hints">
+        <div><span class="dot yellow"></span>Favorite</div>
+        <div><span class="dot red"></span>Sort List / Audio Track</div>
+        <div><span class="dot green"></span>Global Search / Ratio</div>
+        <div><span class="dot blue"></span>Filter Column / Subtitles</div>
+      </div>
+      <div>0: Last Channel | CH+/CH-: Page Jump | OK: Play | BACK: Hide / Exit</div>
+    </div>
+  </div>
+
+  <div id="osd-bar">
+    <div id="osd-header">
+      <div id="osd-title">Channel</div>
+      <div id="osd-status">Live</div>
+    </div>
+    <div id="epg-now" class="epg-row"><span>NOW:</span> --</div>
+    <div id="epg-next" class="epg-row"><span>NEXT:</span> --</div>
+    <div id="vod-progress-wrap"><div id="vod-progress-bar"></div></div>
+  </div>
+
+  <div id="settings-modal" class="modal">
+    <div class="modal-box">
+      <h2>Portal Settings &amp; Customization</h2>
+      <label>Portal URL</label>
+      <input id="inp-portal" type="text" placeholder="http://example.com/c" />
+      <label>MAC Address</label>
+      <input id="inp-mac" type="text" placeholder="00:1A:79:XX:XX:XX" />
+      <label>Theme Accent Color</label>
+      <select id="sel-theme">
+        <option value="blue">Electric Blue (Default)</option>
+        <option value="green">Neon Green</option>
+        <option value="red">Crimson Red</option>
+        <option value="amber">Amber Gold</option>
+      </select>
+      <div class="btn-row">
+        <div id="btn-save" class="btn">Save &amp; Connect</div>
+        <div id="btn-cancel" class="btn">Cancel</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="search-modal" class="modal">
+    <div class="modal-box">
+      <h2>Global Search (Categories, Live TV, Movies &amp; Series)</h2>
+      <input id="inp-search" type="text" placeholder="Press OK to type, then press Down to scroll results..." />
+      <div id="search-results"></div>
+    </div>
+  </div>
+
+  <div id="filter-modal" class="modal">
+    <div class="modal-box">
+      <h2 id="filter-modal-title">Filter Current List</h2>
+      <input id="inp-filter" type="text" placeholder="Type keyword to filter current column (leave empty to clear)..." />
+      <div class="btn-row">
+        <div id="btn-filter-apply" class="btn">Apply Filter</div>
+        <div id="btn-filter-clear" class="btn">Clear Filter</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
