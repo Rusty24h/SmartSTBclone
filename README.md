@@ -1,4 +1,4 @@
-# SmartSTB Clone for Samsung Tizen TV
+# SmartSTB Clone for Samsung Tizen TVs
 
 A lightweight, custom Tizen TV web application built to interface with Stalker portals using native JavaScript and the Samsung `avplay` video player.
 
